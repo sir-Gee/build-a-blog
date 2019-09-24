@@ -12,50 +12,49 @@ app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
 
 
-class Task(db.Model):
+class Blog(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120))
+    post_text = db.Column(db.String(255))
 
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, post_text):
+        self.post_text = post_text
 
 
-# tasks = []
-# results = db.session.execute(select([Task]))
+all_posts = []
 
-# tasks = []
 
-tasks = []
+@app.route('/addpost', methods=['POST', 'GET'])
+def add_post():
+    if request.method == 'POST':
+        post = request.form['new-post-text']
 
-# for i in results:
-#     tasks.append(i[1])
-    # print(i[1])
+    return render_template('base.html')
 
 
 @app.route('/', methods=['POST', 'GET'])
 def index():
 
     if request.method == 'POST':
-        task = request.form['task']
+        post = request.form['new-post-text']
 
-        if task in tasks:
-            return redirect("/?error=You have this task on the list")
+        if post in all_posts:
+            return redirect("/?error=You have this post already")
 
-        db.session.add(Task(str(task)))
+        db.session.add(Blog(str(post)))
         db.session.commit()
-        results = db.session.execute(select([Task]))
-        tasks.clear()
+        results = db.session.execute(select([Blog]))
+        all_posts.clear()
         for item in results:
-            tasks.append(item[1])
+            all_posts.append(item[1])
 
     if request.method == 'GET':
-        results = db.session.execute(select([Task]))
-        tasks.clear()
+        results = db.session.execute(select([Blog]))
+        all_posts.clear()
         for item in results:
-            tasks.append(item[1])
+            all_posts.append(item[1])
 
-    return render_template('todos.html', title="Get It Done!", tasks=tasks, errorTask=request.args.get("error"))
+    return render_template('posts.html', title="Build a blog!", all_posts=all_posts, errorTask=request.args.get("error"))
 
 
 if __name__ == '__main__':
