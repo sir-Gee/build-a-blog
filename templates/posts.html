@@ -4,16 +4,17 @@
     <h1>Build a blog!</h1>
 
 
-
-    {% if all_posts %}
-    <ul>
-        {% for post in all_posts %}
-        <h3><li>{{post}}</li></h3>
+    <ul style="list-style: none;">
+        {% for post in posts %}
+        <h4><li><a href="?post_title={{post.title}}">{{post.title}}</a> </li></h4>
+        <h5>{{post.text}}</h5>
+        <hr/>
+        {% else %}
+        <h5>No posts yet</h5>
         {% endfor %}
     </ul>
-    {% else %}
-    <p>No posts yet</p>
-    {% endif %}
+
+
 
 
 {% endblock %}
