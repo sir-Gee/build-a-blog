@@ -1,6 +1,5 @@
-from flask import Flask, request, render_template, redirect
+from flask import Flask, request, render_template, redirect, flash, session
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.sql import select
 
 app = Flask(__name__)
 
@@ -15,47 +14,67 @@ db = SQLAlchemy(app)
 class Blog(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
-    post_text = db.Column(db.String(255))
+    title = db.Column(db.String(120))
+    text = db.Column(db.String(255))
 
-    def __init__(self, post_text):
-        self.post_text = post_text
-
-
-all_posts = []
+    def __init__(self, title, text):
+        self.title = title
+        self.text = text
 
 
 @app.route('/addpost', methods=['POST', 'GET'])
 def add_post():
-    if request.method == 'POST':
-        post = request.form['new-post-text']
 
-    return render_template('base.html')
+    post_title = ''
+    post_text = ''
+
+    if request.method == 'POST':
+        post_title = request.form['title']
+        post_text = request.form['text']
+
+        if post_title == Blog.query.filter_by(title=post_title).first():
+            return redirect("/addpost?error=You have this post already")
+
+        if len(post_title) == 0 or len(post_text) == 0:
+            flash('Error: Title or body can\'t be empty')
+
+            return render_template('addpost.html', entered_post=post_text, entered_title=post_title)
+
+        blog = Blog(post_title, post_text)
+        db.session.add(blog)
+        db.session.commit()
+
+        return redirect("/?post_title={title}".format(title=blog.title))
+
+    return render_template('addpost.html', entered_post=post_text, entered_title=post_title)
 
 
 @app.route('/', methods=['POST', 'GET'])
 def index():
 
-    if request.method == 'POST':
-        post = request.form['new-post-text']
+    post_title = request.args.get('post_title')
 
-        if post in all_posts:
-            return redirect("/?error=You have this post already")
+    if post_title:
+        blog = Blog.query.filter_by(title=post_title).first()
+        return render_template('post.html', post=blog)
 
-        db.session.add(Blog(str(post)))
-        db.session.commit()
-        results = db.session.execute(select([Blog]))
-        all_posts.clear()
-        for item in results:
-            all_posts.append(item[1])
+    all_posts = Blog.query.all()
 
-    if request.method == 'GET':
-        results = db.session.execute(select([Blog]))
-        all_posts.clear()
-        for item in results:
-            all_posts.append(item[1])
+    return render_template('posts.html', title="Build a blog!", posts=all_posts)
 
-    return render_template('posts.html', title="Build a blog!", all_posts=all_posts, errorTask=request.args.get("error"))
 
+def is_email(string):
+    atsign_index = string.find('@')
+    atsign_present = atsign_index >= 0
+    if not atsign_present:
+        return False
+    else:
+        domain_dot_index = string.find('.', atsign_index)
+        domain_dot_present = domain_dot_index >= 0
+        return domain_dot_present
+
+
+app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RU'
 
 if __name__ == '__main__':
     app.run()
